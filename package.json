@@ -24,7 +24,7 @@
     "prepare": "husky install"
   },
   "lint-staged": {
-    "srv/**/*.{js,jsx,ts,tsx}": "eslint --fix"
+    "src/**/*.{js,jsx,ts,tsx}": "eslint --fix"
   },
   "eslintConfig": {
     "extends": [
