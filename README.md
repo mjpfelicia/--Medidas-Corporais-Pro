@@ -1,70 +1,54 @@
-# Getting Started with Create React App
+# BodyTrack - Acompanhamento Corporal
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Aplicação web em React para registrar e acompanhar a evolução de medidas corporais (peso, % gordura, massa muscular, cintura). Os dados são salvos no localStorage do navegador.
 
-## Available Scripts
+## 🚀 Funcionalidades Atuais
 
-In the project directory, you can run:
+- Cadastro de medições (data, peso, altura, cintura) com cálculo automático de IMC, % gordura e massa muscular (fórmulas simples)
+- Dashboard com cards mostrando última medição e variação em relação à primeira
+- Exibição de metas fixas (exemplo) com barras de progresso
+- Layout responsivo com Bootstrap 5 e ícones
 
-### `npm start`
+## 🛠️ Tecnologias
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- React (hooks: useState, useEffect, useMemo)
+- Bootstrap 5 + Bootstrap Icons
+- localStorage para persistência
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
 
-### `npm test`
+🔮 Próximas Etapas (Roadmap)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Curto Prazo
+Gráficos de evolução (Recharts ou Chart.js) – visualizar histórico de peso, gordura e massa muscular.
 
-### `npm run build`
+Metas personalizadas – usuário define metas (peso, % gordura) e acompanha progresso.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Exportar dados (CSV/JSON) – backup e análise externa.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Tema claro/escuro – melhoria na experiência do usuário.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Validações inline – substituir alerts por mensagens amigáveis no formulário.
 
-### `npm run eject`
+Médio Prazo
+Backend + Autenticação (Firebase/Supabase) – dados na nuvem, login com email ou Google.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Compartilhamento com profissional – gerar link para treinador/nutricionista visualizar progresso.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Lembretes/notificações – push ou e-mail para medir regularmente.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Cálculos mais precisos – permitir entrada manual de % gordura (ex: de balança com bioimpedância).
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Histórico de metas – gráficos de meta vs realizado.
+Longo Prazo
+App mobile com React Native (aproveitando a lógica já criada).
 
-## Learn More
+Integração com wearables (Google Fit, Apple Health, Garmin).
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Planos/assinaturas para funcionalidades premium.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Relatórios em PDF para impressão.
 
-### Code Splitting
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
 
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+📄 Licença
+MIT
