@@ -1,16 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { localStorageService } from './localStorageService';
 
 export const useMeasurements = () => {
-  const [measurements, setMeasurements] = useState([
-    {
-      id: 1,
-      date: '2026-01-17',
-      weight: 75.5,
-      bodyFat: 18.2,
-      muscleMass: 32.1,
-      waist: 85
-    }
-  ]);
+  const [measurements, setMeasurements] = useState(() => {
+    const saved = localStorageService.get('measurements');
+    return saved && saved.length > 0 ? saved : [];
+  });
+
+  useEffect(() => {
+    localStorageService.set('measurements', measurements);
+  }, [measurements]);
 
   const addMeasurement = (data) => {
     setMeasurements(prev =>

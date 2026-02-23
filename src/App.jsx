@@ -11,7 +11,7 @@ const App = () => {
 
   return (
     <div className="min-vh-100 bg-light">
-      <Header activeTab={activeTab} onChange={setActiveTab} />
+      <Header activeTab={activeTab} onTabChange={setActiveTab} />
 
       <main className="container py-4">
         {activeTab === 'dashboard' && <Dashboard measurements={measurements} />}

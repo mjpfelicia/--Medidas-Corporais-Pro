@@ -1,4 +1,14 @@
-const Progress = ({ measurements }) => {
+import { useEffect, useState } from 'react';
+import { localStorageService } from '../hooks/localStorageService';
+
+const Progress = () => {
+  const [measurements, setMeasurements] = useState([]);
+
+  useEffect(() => {
+    const saved = localStorageService.get('measurements');
+    setMeasurements(saved && saved.length > 0 ? saved : []);
+  }, []);
+
   if (measurements.length < 2) return <p>Dados insuficientes.</p>;
 
   const first = measurements[measurements.length - 1];
