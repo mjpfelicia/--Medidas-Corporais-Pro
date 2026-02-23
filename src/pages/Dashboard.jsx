@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { localStorageService } from '../hooks/localStorageService';
 
 const DashboardPage = () => {
-  const [measurements, setMeasurements] = useState([]);
+  const [setMeasurements] = useState([]);
   const [last, setLast] = useState(null);
   const [first, setFirst] = useState(null);
 

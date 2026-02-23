@@ -8,7 +8,7 @@ const Measurements = ({ onAdd }) => {
     // Calcular IMC (Gordura Corporal) e Massa Muscular
     const weight = parseFloat(form.weight);
     const height = parseFloat(form.height) / 100; // altura em metros
-    const waist = parseFloat(form.waist);
+    // const waist = parseFloat(form.waist);
     let bodyFat = '';
     let muscleMass = '';
     if (weight && height) {
