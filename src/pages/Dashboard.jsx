@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { localStorageService } from '../hooks/localStorageService';
 
 const DashboardPage = () => {
-  const [setMeasurements] = useState([]);
+  const [measurements,setMeasurements] = useState([]);
   const [last, setLast] = useState(null);
   const [first, setFirst] = useState(null);
 
+  console.log({ measurements  });
+  
   useEffect(() => {
     const saved = localStorageService.get('measurements');
     if (saved && saved.length > 0) {
