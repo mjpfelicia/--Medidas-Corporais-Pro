@@ -6,8 +6,8 @@ const DashboardPage = () => {
   const [last, setLast] = useState(null);
   const [first, setFirst] = useState(null);
 
-  console.log({ measurements  });
-  
+  console.log({ measurements });
+
   useEffect(() => {
     const saved = localStorageService.get('measurements');
     if (saved && saved.length > 0) {
