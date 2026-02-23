@@ -33,7 +33,7 @@ const DashboardPage = () => {
         style={{
           background: 'linear-gradient(90deg, #4f46e5, #7c3aed)'
         }}>
-        <h2 className="fw-bold mb-2">Bem-vindo de volta!</h2>
+        <h2 className="fw-bold mb-2">Bem-vindo de volta!!</h2>
         <p className="mb-0 opacity-75">
           Acompanhe seu progresso e alcance seus objetivos de composição corporal.
         </p>
