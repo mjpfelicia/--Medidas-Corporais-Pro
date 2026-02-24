@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { localStorageService } from '../hooks/localStorageService';
-import { col } from 'framer-motion/client';
+import Human3DModel from '../components/dashboard/Human3DModel';
 
 const DashboardPage = () => {
   const [measurements, setMeasurements] = useState([]);
@@ -67,6 +67,14 @@ const DashboardPage = () => {
           Acompanhe seu progresso e alcance seus objetivos de composição corporal.
         </p>
       </div>
+
+      {/* Modelo 3D do Corpo */}
+      <Human3DModel 
+        initialWeight={parseFloat(last.weight)} 
+        initialHeight={180} 
+        initialWaist={parseFloat(last.waist)}
+        measurements={measurements}
+      />
 
       {/* Cards principais */}
       <div className="row g-4 mb-4">
