@@ -1,14 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './Header.css';
 
 const Header = ({ activeTab, onTabChange }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleTabChange = (tab) => {
+    onTabChange(tab);
+    setIsMenuOpen(false);
+  };
+
+  const NavButton = ({ icon, label, tabName }) => (
+    <button
+      className={`nav-btn w-100 d-flex align-items-center gap-2 px-3 py-2 transition-all ${
+        activeTab === tabName ? 'btn-primary text-white' : 'btn-outline-secondary text-dark'
+      }`}
+      onClick={() => handleTabChange(tabName)}
+    >
+      {icon}
+      <span className="nav-label">{label}</span>
+    </button>
+  );
+
   return (
-    <header className="bg-white border-bottom shadow-sm">
-      <div className="container">
-        <div className="d-flex justify-content-between align-items-center" style={{ height: 64 }}>
+    <header className={`header-wrapper bg-white border-bottom shadow-sm ${isScrolled ? 'scrolled' : ''}`}>
+      <div className="container-fluid px-3 px-md-4">
+        <div className="header-content d-flex justify-content-between align-items-center py-3 py-md-2">
 
           {/* Logo */}
-          <div className="d-flex align-items-center">
+          <div className="logo-section d-flex align-items-center gap-2 flex-shrink-0">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="28"
@@ -18,16 +47,39 @@ const Header = ({ activeTab, onTabChange }) => {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-primary me-2"
+              className="text-primary flex-shrink-0"
               viewBox="0 0 24 24"
             >
               <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" />
             </svg>
-            <h1 className="h5 mb-0 fw-bold">Medidas Corporais Pro</h1>
+            <h1 className="h6 h5-md mb-0 fw-bold text-nowrap logo-text">Medidas Corporais Pro</h1>
           </div>
 
-          {/* Navegação */}
-          <nav className="d-flex gap-3">
+          {/* Menu Hambúrguer (Mobile) */}
+          <button
+            className="btn btn-link text-dark p-0 d-lg-none flex-shrink-0"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Menu"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="4" y1="6" x2="20" y2="6"></line>
+              <line x1="4" y1="12" x2="20" y2="12"></line>
+              <line x1="4" y1="18" x2="20" y2="18"></line>
+            </svg>
+          </button>
+
+          {/* Navegação Desktop */}
+          <nav className="nav-desktop d-none d-lg-flex gap-2">
             <button
               className={`btn btn-sm ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-outline-secondary'}`}
               onClick={() => onTabChange('dashboard')}
@@ -102,6 +154,78 @@ const Header = ({ activeTab, onTabChange }) => {
             </button>
           </nav>
         </div>
+
+        {/* Navegação Mobile */}
+        <nav className={`nav-mobile d-lg-none ${isMenuOpen ? 'show' : ''}`}>
+          <div className="d-flex flex-column gap-2 pb-3">
+            <NavButton
+              icon={
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M16 7h6v6"></path>
+                  <path d="m22 7-8.5 8.5-5-5L2 17"></path>
+                </svg>
+              }
+              label="Acompanhamento"
+              tabName="dashboard"
+            />
+
+            <NavButton
+              icon={
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"></path>
+                  <path d="m14.5 12.5 2-2"></path>
+                  <path d="m11.5 9.5 2-2"></path>
+                  <path d="m8.5 6.5 2-2"></path>
+                  <path d="m17.5 15.5 2-2"></path>
+                </svg>
+              }
+              label="Medições"
+              tabName="measurements"
+            />
+
+            <NavButton
+              icon={
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <circle cx="12" cy="12" r="6"></circle>
+                  <circle cx="12" cy="12" r="2"></circle>
+                </svg>
+              }
+              label="Progresso"
+              tabName="progress"
+            />
+          </div>
+        </nav>
       </div>
     </header>
   );

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { localStorageService } from '../hooks/localStorageService';
-import { col } from 'framer-motion/client';
 
 const DashboardPage = () => {
   const [measurements, setMeasurements] = useState([]);
@@ -9,12 +8,15 @@ const DashboardPage = () => {
 
   useEffect(() => {
     const saved = localStorageService.get('measurements');
+
     if (Array.isArray(saved) && saved.length > 0) {
-      // Filtra medições com valores absurdos
-      const valid = saved.filter(m => 
-        m.bodyFat < 100 && m.muscleMass < 500 && 
-        m.weight > 20 && m.weight < 300 &&
-        m.waist > 20 && m.waist < 200
+      const valid = saved.filter(m =>
+        m.bodyFat < 100 &&
+        m.muscleMass < 500 &&
+        m.weight > 20 &&
+        m.weight < 300 &&
+        m.waist > 20 &&
+        m.waist < 200
       );
 
       if (valid.length === 0) {
@@ -22,29 +24,67 @@ const DashboardPage = () => {
         return;
       }
 
-      // Ordena do mais antigo para o mais recente (campo date)
-      const sorted = [...valid];
+      // ✅ Ordena corretamente por data (mais antigo → mais recente)
+      const sorted = [...valid].sort(
+        (a, b) => new Date(a.date) - new Date(b.date)
+      );
+
       setMeasurements(sorted);
-      setFirst(sorted[0]);                // mais antigo
-      setLast(sorted[sorted.length - 1]); // mais recente
-     
+      setFirst(sorted[0]);
+      setLast(sorted[sorted.length - 1]);
     }
   }, []);
 
-  // Calcula deltas apenas se houver pelo menos 2 medições
-  let gorduraDelta = '';
-  let massaDelta = '';
+  // ===============================
+  // Cálculos seguros
+  // ===============================
+
+  let gorduraDelta = 0;
+  let massaDelta = 0;
+  let weightDelta = 0;
+  let waistDelta = 0;
+
+  let fatProgress = 0;
+  let muscleProgress = 0;
+
   if (first && last && measurements.length >= 2) {
     const firstFat = parseFloat(first.bodyFat);
     const lastFat = parseFloat(last.bodyFat);
+
     const firstMuscle = parseFloat(first.muscleMass);
     const lastMuscle = parseFloat(last.muscleMass);
 
+    const firstWeight = parseFloat(first.weight);
+    const lastWeight = parseFloat(last.weight);
+
+    const firstWaist = parseFloat(first.waist);
+    const lastWaist = parseFloat(last.waist);
+
+    // ✅ Redução de gordura é positivo
     gorduraDelta = (firstFat - lastFat).toFixed(1);
+
+    // ✅ Ganho muscular é positivo
     massaDelta = (lastMuscle - firstMuscle).toFixed(1);
+
+    weightDelta = (lastWeight - firstWeight).toFixed(1);
+    waistDelta = (lastWaist - firstWaist).toFixed(1);
+
+    // ✅ Progresso real limitado entre 0 e 100
+    fatProgress = Math.min(
+      100,
+      Math.max(0, ((firstFat - lastFat) / firstFat) * 100)
+    );
+
+    muscleProgress = Math.min(
+      100,
+      Math.max(0, ((lastMuscle - firstMuscle) / firstMuscle) * 100)
+    );
   }
 
-  // Se não houver dados válidos, exibe mensagem
+  // ===============================
+  // Sem dados
+  // ===============================
+
   if (!last) {
     return (
       <main className="container py-4">
@@ -58,10 +98,12 @@ const DashboardPage = () => {
   return (
     <main className="container py-4">
       {/* Hero */}
-      <div className="p-4 p-md-5 mb-4 rounded-4 text-white"
+      <div
+        className="p-4 p-md-5 mb-4 rounded-4 text-white"
         style={{
           background: 'linear-gradient(90deg, #4f46e5, #7c3aed)'
-        }}>
+        }}
+      >
         <h2 className="fw-bold mb-2">Bem-vindo de volta!!</h2>
         <p className="mb-0 opacity-75">
           Acompanhe seu progresso e alcance seus objetivos de composição corporal.
@@ -70,101 +112,101 @@ const DashboardPage = () => {
 
       {/* Cards principais */}
       <div className="row g-4 mb-4">
-        <>
-          {/* Peso */}
-          <div className="col-12 col-md-6 col-lg-3">
-            <div className="card h-100 shadow-sm border-0">
-              <div className="card-body">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <i className="bi bi-speedometer2 text-primary fs-3"></i>
-                  <span className="text-muted small fw-medium">Peso</span>
-                </div>
-                <div className="d-flex align-items-baseline">
-                  <span className="fs-2 fw-bold">{last.weight}</span>
-                  <span className="text-muted ms-1">kg</span>
-                </div>
-                <div className={`small mt-2 ${last.weight - first.weight >= 0 ? 'text-success' : 'text-danger'}`}>
-                  {last.weight - first.weight > 0 ? '+' : ''}
-                  {(last.weight - first.weight).toFixed(1)} kg
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Gordura */}
-          <div className="col-12 col-md-6 col-lg-3">
-            <div className="card h-100 shadow-sm border-0">
-              <div className="card-body">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <i className="bi bi-heart-pulse text-primary fs-3"></i>
-                  <span className="text-muted small fw-medium">Gordura Corporal</span>
-                </div>
-                <div className="d-flex align-items-baseline">
-                  <span className="fs-2 fw-bold">{last.bodyFat}</span>
-                  <span className="text-muted ms-1">%</span>
-                </div>
-                <div className={`small mt-2 ${parseFloat(gorduraDelta) >= 0 ? 'text-success' : 'text-danger'}`}>
-                  {gorduraDelta && parseFloat(gorduraDelta) > 0 ? '+' : ''}{gorduraDelta}%
-                </div>
+        {/* Peso */}
+        <div className="col-12 col-md-6 col-lg-3">
+          <div className="card h-100 shadow-sm border-0">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <i className="bi bi-speedometer2 text-primary fs-3"></i>
+                <span className="text-muted small fw-medium">Peso</span>
+              </div>
+              <div className="d-flex align-items-baseline">
+                <span className="fs-2 fw-bold">{last.weight}</span>
+                <span className="text-muted ms-1">kg</span>
+              </div>
+              <div className={`small mt-2 ${weightDelta >= 0 ? 'text-success' : 'text-danger'}`}>
+                {weightDelta > 0 ? '+' : ''}{weightDelta} kg
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Massa Muscular */}
-          <div className="col-12 col-md-6 col-lg-3">
-            <div className="card h-100 shadow-sm border-0">
-              <div className="card-body">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <i className="bi bi-lightning-charge text-primary fs-3"></i>
-                  <span className="text-muted small fw-medium">Massa Muscular</span>
-                </div>
-                <div className="d-flex align-items-baseline">
-                  <span className="fs-2 fw-bold">{last.muscleMass}</span>
-                  <span className="text-muted ms-1">kg</span>
-                </div>
-                <div className={`small mt-2 ${parseFloat(massaDelta) >= 0 ? 'text-success' : 'text-danger'}`}>
-                  {massaDelta && parseFloat(massaDelta) > 0 ? '+' : ''}{massaDelta}kg
-                </div>
+        {/* Gordura */}
+        <div className="col-12 col-md-6 col-lg-3">
+          <div className="card h-100 shadow-sm border-0">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <i className="bi bi-heart-pulse text-primary fs-3"></i>
+                <span className="text-muted small fw-medium">Gordura Corporal</span>
+              </div>
+              <div className="d-flex align-items-baseline">
+                <span className="fs-2 fw-bold">{last.bodyFat}</span>
+                <span className="text-muted ms-1">%</span>
+              </div>
+              <div className={`small mt-2 ${gorduraDelta >= 0 ? 'text-success' : 'text-danger'}`}>
+                {gorduraDelta > 0 ? '+' : ''}{gorduraDelta}%
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Cintura */}
-          <div className="col-12 col-md-6 col-lg-3">
-            <div className="card h-100 shadow-sm border-0">
-              <div className="card-body">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <i className="bi bi-person text-primary fs-3"></i>
-                  <span className="text-muted small fw-medium">Cintura</span>
-                </div>
-                <div className="d-flex align-items-baseline">
-                  <span className="fs-2 fw-bold">{last.waist}</span>
-                  <span className="text-muted ms-1">cm</span>
-                </div>
-                <div className={`small mt-2 ${last.waist - first.waist <= 0 ? 'text-success' : 'text-danger'}`}>
-                  {last.waist - first.waist > 0 ? '+' : ''}
-                  {(last.waist - first.waist).toFixed(1)} cm
-                </div>
+        {/* Massa Muscular */}
+        <div className="col-12 col-md-6 col-lg-3">
+          <div className="card h-100 shadow-sm border-0">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <i className="bi bi-lightning-charge text-primary fs-3"></i>
+                <span className="text-muted small fw-medium">Massa Muscular</span>
+              </div>
+              <div className="d-flex align-items-baseline">
+                <span className="fs-2 fw-bold">{last.muscleMass}</span>
+                <span className="text-muted ms-1">kg</span>
+              </div>
+              <div className={`small mt-2 ${massaDelta >= 0 ? 'text-success' : 'text-danger'}`}>
+                {massaDelta > 0 ? '+' : ''}{massaDelta} kg
               </div>
             </div>
           </div>
-        </>
+        </div>
+
+        {/* Cintura */}
+        <div className="col-12 col-md-6 col-lg-3">
+          <div className="card h-100 shadow-sm border-0">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <i className="bi bi-person text-primary fs-3"></i>
+                <span className="text-muted small fw-medium">Cintura</span>
+              </div>
+              <div className="d-flex align-items-baseline">
+                <span className="fs-2 fw-bold">{last.waist}</span>
+                <span className="text-muted ms-1">cm</span>
+              </div>
+              <div className={`small mt-2 ${waistDelta <= 0 ? 'text-success' : 'text-danger'}`}>
+                {waistDelta > 0 ? '+' : ''}{waistDelta} cm
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      {/* Metas (valores fixos por enquanto) */}
+      {/* Metas */}
       <div className="row g-4">
         <div className="col-12 col-md-6">
           <div className="card shadow-sm border-0">
             <div className="card-body">
               <div className="d-flex justify-content-between mb-2">
                 <h6 className="fw-semibold mb-0">Redução de Gordura Corporal</h6>
-                <span className="text-muted small">{last.bodyFat} / {first.bodyFat}</span>
+                <span className="text-muted small">
+                  {last.bodyFat} / {first.bodyFat}
+                </span>
               </div>
               <div className="progress" style={{ height: 10 }}>
                 <div
                   className="progress-bar bg-danger"
                   role="progressbar"
-                  style={{ width: '100%' }}
+                  style={{ width: `${fatProgress}%` }}
                 />
               </div>
             </div>
@@ -176,13 +218,15 @@ const DashboardPage = () => {
             <div className="card-body">
               <div className="d-flex justify-content-between mb-2">
                 <h6 className="fw-semibold mb-0">Ganho de Massa Muscular</h6>
-                <span className="text-muted small">{last.muscleMass} / {first.muscleMass}</span>
+                <span className="text-muted small">
+                  {last.muscleMass} / {first.muscleMass}
+                </span>
               </div>
               <div className="progress" style={{ height: 10 }}>
                 <div
                   className="progress-bar bg-success"
                   role="progressbar"
-                  style={{ width: '92%' }}
+                  style={{ width: `${muscleProgress}%` }}
                 />
               </div>
             </div>

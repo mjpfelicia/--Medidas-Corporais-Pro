@@ -1,3 +1,188 @@
-svg {
-    margin-right: 0.5rem;
+/* ============================= */
+/* HEADER PREMIUM SAAS 2026      */
+/* ============================= */
+
+:root {
+  --primary: #4f46e5;
+  --primary-dark: #4338ca;
+  --text-main: #0f172a;
+  --text-soft: #475569;
+  --border-color: #e2e8f0;
+  --bg-light: rgba(255, 255, 255, 0.75);
+  --glass-blur: blur(14px);
+}
+
+/* ============================= */
+/* WRAPPER (GLASS EFFECT)        */
+/* ============================= */
+
+.header-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  backdrop-filter: var(--glass-blur);
+  background: var(--bg-light);
+  border-bottom: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+/* Sombra dinâmica ao rolar */
+.header-wrapper.scrolled {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+/* ============================= */
+/* LOGO                          */
+/* ============================= */
+
+.logo-text {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.4px;
+}
+
+/* ============================= */
+/* BOTÕES PREMIUM                */
+/* ============================= */
+
+.nav-btn {
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--border-color);
+  background: white;
+  color: var(--text-main);
+  transition: all 0.25s cubic-bezier(.4,0,.2,1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Hover suave */
+.nav-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+/* Efeito brilho interno */
+.nav-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(255, 255, 255, 0.5),
+    transparent
+  );
+  transition: 0.5s;
+}
+
+.nav-btn:hover::after {
+  left: 100%;
+}
+
+/* Botão ativo */
+.nav-btn.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  border: none;
+  color: #fff !important;
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35);
+}
+
+/* Botão secundário */
+.nav-btn.btn-outline-secondary {
+  background: white;
+  border: 1px solid var(--border-color);
+  color: var(--text-main) !important;
+}
+
+.nav-btn.btn-outline-secondary:hover {
+  background: #f8fafc;
+}
+
+/* ============================= */
+/* MENU MOBILE PREMIUM           */
+/* ============================= */
+
+.nav-mobile {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease;
+}
+
+.nav-mobile.show {
+  max-height: 500px;
+  padding-top: 1rem;
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  animation: fadeSlide 0.35s ease forwards;
+}
+
+@keyframes fadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================= */
+/* RESPONSIVO                    */
+/* ============================= */
+
+@media (max-width: 768px) {
+  .logo-text {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-text {
+    font-size: 0.85rem;
+  }
+}
+
+/* ============================= */
+/* DARK MODE AUTOMÁTICO          */
+/* ============================= */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-main: #f1f5f9;
+    --text-soft: #cbd5e1;
+    --border-color: #1e293b;
+    --bg-light: rgba(15, 23, 42, 0.75);
+  }
+
+  .nav-btn {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+  }
+
+  .nav-btn.btn-outline-secondary:hover {
+    background: #1e293b;
+  }
+}
+
+/* ============================= */
+/* ACESSIBILIDADE                */
+/* ============================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-btn,
+  .nav-mobile {
+    transition: none;
+  }
+
+  .nav-btn:hover {
+    transform: none;
+  }
 }
