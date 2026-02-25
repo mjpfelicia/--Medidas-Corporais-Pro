@@ -14,7 +14,7 @@ export const useMeasurements = () => {
   const addMeasurement = (data) => {
     setMeasurements(prev =>
       [...prev, { ...data, id: Date.now() }].sort(
-        (a, b) => new Date(b.date) - new Date(a.date)
+        (a, b) => new Date(a.date) - new Date(b.date)
       )
     );
   };

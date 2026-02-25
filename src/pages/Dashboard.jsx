@@ -1,16 +1,12 @@
 import { useEffect, useState } from 'react';
-import { localStorageService } from '../hooks/localStorageService';
 
-const DashboardPage = () => {
-  const [measurements, setMeasurements] = useState([]);
+const DashboardPage = ({ measurements = [] }) => {
   const [last, setLast] = useState(null);
   const [first, setFirst] = useState(null);
 
   useEffect(() => {
-    const saved = localStorageService.get('measurements');
-
-    if (Array.isArray(saved) && saved.length > 0) {
-      const valid = saved.filter(m =>
+    if (Array.isArray(measurements) && measurements.length > 0) {
+      const valid = measurements.filter(m =>
         m.bodyFat < 100 &&
         m.muscleMass < 500 &&
         m.weight > 20 &&
@@ -20,7 +16,8 @@ const DashboardPage = () => {
       );
 
       if (valid.length === 0) {
-        setMeasurements([]);
+        setFirst(null);
+        setLast(null);
         return;
       }
 
@@ -29,11 +26,10 @@ const DashboardPage = () => {
         (a, b) => new Date(a.date) - new Date(b.date)
       );
 
-      setMeasurements(sorted);
       setFirst(sorted[0]);
       setLast(sorted[sorted.length - 1]);
     }
-  }, []);
+  }, [measurements]);
 
   // ===============================
   // Cálculos seguros
@@ -47,37 +43,37 @@ const DashboardPage = () => {
   let fatProgress = 0;
   let muscleProgress = 0;
 
-  if (first && last && measurements.length >= 2) {
-    const firstFat = parseFloat(first.bodyFat);
+  if (last && measurements.length >= 2) {
+    // Pega a medição anterior (penúltima)
+    const previous = measurements[measurements.length - 2];
+
+    const prevFat = parseFloat(previous.bodyFat);
     const lastFat = parseFloat(last.bodyFat);
 
-    const firstMuscle = parseFloat(first.muscleMass);
+    const prevMuscle = parseFloat(previous.muscleMass);
     const lastMuscle = parseFloat(last.muscleMass);
 
-    const firstWeight = parseFloat(first.weight);
+    const prevWeight = parseFloat(previous.weight);
     const lastWeight = parseFloat(last.weight);
 
-    const firstWaist = parseFloat(first.waist);
+    const prevWaist = parseFloat(previous.waist);
     const lastWaist = parseFloat(last.waist);
 
-    // ✅ Redução de gordura é positivo
-    gorduraDelta = (firstFat - lastFat).toFixed(1);
-
-    // ✅ Ganho muscular é positivo
-    massaDelta = (lastMuscle - firstMuscle).toFixed(1);
-
-    weightDelta = (lastWeight - firstWeight).toFixed(1);
-    waistDelta = (lastWaist - firstWaist).toFixed(1);
+    // ✅ Comparação com medição anterior (não com a primeira)
+    gorduraDelta = (lastFat - prevFat).toFixed(1);
+    massaDelta = (lastMuscle - prevMuscle).toFixed(1);
+    weightDelta = (lastWeight - prevWeight).toFixed(1);
+    waistDelta = (lastWaist - prevWaist).toFixed(1);
 
     // ✅ Progresso real limitado entre 0 e 100
     fatProgress = Math.min(
       100,
-      Math.max(0, ((firstFat - lastFat) / firstFat) * 100)
+      Math.max(0, ((prevFat - lastFat) / prevFat) * 100)
     );
 
     muscleProgress = Math.min(
       100,
-      Math.max(0, ((lastMuscle - firstMuscle) / firstMuscle) * 100)
+      Math.max(0, ((lastMuscle - prevMuscle) / prevMuscle) * 100)
     );
   }
 
@@ -144,7 +140,7 @@ const DashboardPage = () => {
                 <span className="fs-2 fw-bold">{last.bodyFat}</span>
                 <span className="text-muted ms-1">%</span>
               </div>
-              <div className={`small mt-2 ${gorduraDelta >= 0 ? 'text-success' : 'text-danger'}`}>
+              <div className={`small mt-2 ${gorduraDelta <= 0 ? 'text-success' : 'text-danger'}`}>
                 {gorduraDelta > 0 ? '+' : ''}{gorduraDelta}%
               </div>
             </div>
@@ -196,15 +192,15 @@ const DashboardPage = () => {
         <div className="col-12 col-md-6">
           <div className="card shadow-sm border-0">
             <div className="card-body">
-              <div className="d-flex justify-content-between mb-2">
+              <div className="d-flex justify-content-between align-items-center mb-2">
                 <h6 className="fw-semibold mb-0">Redução de Gordura Corporal</h6>
-                <span className="text-muted small">
-                  {last.bodyFat} / {first.bodyFat}
+                <span className={`small fw-medium ${gorduraDelta <= 0 ? 'text-success' : 'text-danger'}`}>
+                  {gorduraDelta > 0 ? '+' : ''}{gorduraDelta}%
                 </span>
               </div>
               <div className="progress" style={{ height: 10 }}>
                 <div
-                  className="progress-bar bg-danger"
+                  className={`progress-bar ${gorduraDelta <= 0 ? 'bg-success' : 'bg-danger'}`}
                   role="progressbar"
                   style={{ width: `${fatProgress}%` }}
                 />
@@ -216,15 +212,15 @@ const DashboardPage = () => {
         <div className="col-12 col-md-6">
           <div className="card shadow-sm border-0">
             <div className="card-body">
-              <div className="d-flex justify-content-between mb-2">
+              <div className="d-flex justify-content-between align-items-center mb-2">
                 <h6 className="fw-semibold mb-0">Ganho de Massa Muscular</h6>
-                <span className="text-muted small">
-                  {last.muscleMass} / {first.muscleMass}
+                <span className={`small fw-medium ${massaDelta >= 0 ? 'text-success' : 'text-danger'}`}>
+                  {massaDelta > 0 ? '+' : ''}{massaDelta} kg
                 </span>
               </div>
               <div className="progress" style={{ height: 10 }}>
                 <div
-                  className="progress-bar bg-success"
+                  className={`progress-bar ${massaDelta >= 0 ? 'bg-success' : 'bg-danger'}`}
                   role="progressbar"
                   style={{ width: `${muscleProgress}%` }}
                 />
