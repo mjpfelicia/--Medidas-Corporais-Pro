@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
-const Human3DModel = ({ 
-    initialWeight = 70, 
-    initialHeight = 170, 
+const Human3DModel = ({
+    initialWeight = 70,
+    initialHeight = 170,
     initialWaist = 80,
-    measurements = [] 
+    measurements = [],
+    gender = 'male' // 'male' ou 'female'
 }) => {
     const containerRef = useRef(null);
     const sceneRef = useRef(null);
@@ -15,6 +17,8 @@ const Human3DModel = ({
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const rotationRef = useRef({ x: 0.6, y: 0 });
+    const positionRef = useRef({ x: 0, y: 0, z: 3 });
+    const [zoomLevel, setZoomLevel] = useState(1);
 
     // Obter última medição
     const lastMeasurement = measurements && measurements.length > 0 ? measurements[0] : null;
@@ -36,7 +40,6 @@ const Human3DModel = ({
         if (!containerRef.current) return;
 
         const container = containerRef.current;
-        const { heightFactor, waistFactor, weightFactor } = getNormalizedValues();
 
         // Inicializar Three.js
         const scene = new THREE.Scene();
@@ -52,25 +55,27 @@ const Human3DModel = ({
         camera.position.z = 3;
         cameraRef.current = camera;
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: false });
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFShadowMap;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
         rendererRef.current = renderer;
         container.appendChild(renderer.domElement);
 
         // Iluminação
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
         directionalLight.position.set(5, 5, 5);
         directionalLight.castShadow = true;
-        directionalLight.shadow.mapSize.width = 2048;
-        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.mapSize.width = 1024;
+        directionalLight.shadow.mapSize.height = 1024;
+        directionalLight.shadow.camera.far = 50;
         scene.add(directionalLight);
 
-        const pointLight = new THREE.PointLight(0xffffff, 0.4);
+        const pointLight = new THREE.PointLight(0xffffff, 0.9);
         pointLight.position.set(-5, 3, 5);
         scene.add(pointLight);
 
@@ -79,189 +84,55 @@ const Human3DModel = ({
         scene.add(humanGroup);
         humanGroupRef.current = humanGroup;
 
-        // Materiais
-        const skinMaterial = new THREE.MeshStandardMaterial({
-            color: 0xe8b4a8,
-            roughness: 0.7,
-            metalness: 0.1,
-        });
+        // Carregar modelo 3D
+        const loader = new GLTFLoader();
+        const modelPath = `${process.env.PUBLIC_URL}/models/${gender}.glb`;
+        console.log({ modelPath });
+        loader.load(
+            modelPath,
+            (gltf) => {
+                const model = gltf.scene;
 
-        const darkSkinMaterial = new THREE.MeshStandardMaterial({
-            color: 0xd4956e,
-            roughness: 0.7,
-            metalness: 0.1,
-        });
+                // Limpar grupo anterior
+                while (humanGroup.children.length > 0) {
+                    humanGroup.remove(humanGroup.children[0]);
+                }
 
-        const clothesMaterial = new THREE.MeshStandardMaterial({
-            color: 0x3b82f6,
-            roughness: 0.6,
-            metalness: 0,
-        });
+                // Adicionar modelo ao grupo
+                humanGroup.add(model);
 
-        // Funções auxiliares
-        const createSphere = (radius, color) => {
-            const geometry = new THREE.SphereGeometry(radius, 32, 32);
-            const material = new THREE.MeshStandardMaterial({ color });
+                // Ajustar escala do modelo
+                model.scale.set(1.5, 1.5, 1.5);
+
+                // Configurar sombras
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+            },
+            undefined,
+            (error) => {
+                console.error(`Erro ao carregar modelo ${gender}:`, error);
+                // Fallback: criar modelo simples se não carregar
+                createFallbackModel(humanGroup, gender);
+            }
+        );
+
+        // Função fallback para criar modelo simples
+        const createFallbackModel = (group, gnd) => {
+            const geometry = new THREE.CapsuleGeometry(0.3, 1.5, 16, 100);
+            const material = new THREE.MeshStandardMaterial({
+                color: gnd === 'female' ? 0xFF69B4 : 0x0066CC,
+                roughness: 0.7,
+                metalness: 0.1,
+            });
             const mesh = new THREE.Mesh(geometry, material);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
-            return mesh;
+            group.add(mesh);
         };
-
-        const createCylinder = (radiusTop, radiusBottom, height, color, material = null) => {
-            const geometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, 32);
-            const mat = material || new THREE.MeshStandardMaterial({ color });
-            const mesh = new THREE.Mesh(geometry, mat);
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
-            return mesh;
-        };
-
-        // ===== CABEÇA =====
-        const headRadius = 0.25 * heightFactor;
-        const head = createSphere(headRadius, 0xe8b4a8);
-        head.position.y = 1 * heightFactor;
-        head.scale.set(1, 1.1, 1);
-        humanGroup.add(head);
-
-        // Olhos
-        const eyeL = createSphere(headRadius * 0.15, 0x333333);
-        eyeL.position.set(-headRadius * 0.5, 1.1 * heightFactor, headRadius * 0.8);
-        humanGroup.add(eyeL);
-
-        const eyeR = createSphere(headRadius * 0.15, 0x333333);
-        eyeR.position.set(headRadius * 0.5, 1.1 * heightFactor, headRadius * 0.8);
-        humanGroup.add(eyeR);
-
-        // ===== PESCOÇO =====
-        const neck = createCylinder(headRadius * 0.6, headRadius * 0.7, 0.2 * heightFactor, 0xe8b4a8, skinMaterial);
-        neck.position.y = 0.85 * heightFactor;
-        humanGroup.add(neck);
-
-        // ===== TRONCO (PEITO) =====
-        const chestRadius = 0.28 * weightFactor;
-        const chest3D = createCylinder(chestRadius, chestRadius * 0.95, 0.5 * heightFactor, 0x3b82f6, clothesMaterial);
-        chest3D.position.y = 0.4 * heightFactor;
-        humanGroup.add(chest3D);
-
-        // ===== ABDÔMEN/CINTURA =====
-        const waistRadius = 0.16 * waistFactor;
-        const abdomen = createCylinder(
-            chestRadius * 0.95,
-            waistRadius,
-            0.35 * heightFactor,
-            0x3b82f6,
-            clothesMaterial
-        );
-        abdomen.position.y = 0 * heightFactor;
-        humanGroup.add(abdomen);
-
-        // Indicador de cintura (se acima de 85cm)
-        if (waistFactor > 1.0625) {
-            const waistIndicator = createCylinder(
-                waistRadius * 1.15,
-                waistRadius * 1.15,
-                0.3 * heightFactor,
-                0xf43f5e
-            );
-            waistIndicator.position.y = 0 * heightFactor;
-            waistIndicator.material.transparent = true;
-            waistIndicator.material.opacity = 0.3;
-            humanGroup.add(waistIndicator);
-        }
-
-        // ===== PÉLVIS/QUADRIS =====
-        const pelvis = createCylinder(
-            waistRadius * 1.1,
-            waistRadius * 1.05,
-            0.25 * heightFactor,
-            0xe8b4a8,
-            skinMaterial
-        );
-        pelvis.position.y = -0.25 * heightFactor;
-        humanGroup.add(pelvis);
-
-        // ===== BRAÇOS =====
-        const createArm = (side) => {
-            const armSide = side === 'left' ? -1 : 1;
-            const shoulderX = armSide * (chestRadius + 0.08);
-
-            // Braço superior
-            const upperArm = createCylinder(
-                0.12 * weightFactor,
-                0.1 * weightFactor,
-                0.35 * heightFactor,
-                0xe8b4a8,
-                skinMaterial
-            );
-            upperArm.position.set(shoulderX, 0.55 * heightFactor, 0);
-            upperArm.rotation.z = armSide * 0.3;
-            humanGroup.add(upperArm);
-
-            // Antebraço
-            const foreArm = createCylinder(
-                0.08 * weightFactor,
-                0.06 * weightFactor,
-                0.3 * heightFactor,
-                0xd4956e,
-                darkSkinMaterial
-            );
-            foreArm.position.set(shoulderX * 1.1, 0.2 * heightFactor, 0);
-            foreArm.rotation.z = armSide * 0.5;
-            humanGroup.add(foreArm);
-
-            // Mão
-            const hand = createSphere(0.08 * weightFactor, 0xe8b4a8);
-            hand.position.set(shoulderX * 1.15, -0.15 * heightFactor, 0);
-            humanGroup.add(hand);
-        };
-
-        createArm('left');
-        createArm('right');
-
-        // ===== PERNAS =====
-        const createLeg = (side) => {
-            const legSide = side === 'left' ? -0.2 : 0.2;
-            const thighRadius = 0.14 * (1 + (thigh - 55) / 100);
-
-            // Coxa
-            const thighBone = createCylinder(
-                thighRadius,
-                thighRadius * 0.9,
-                0.45 * heightFactor,
-                0xe8b4a8,
-                skinMaterial
-            );
-            thighBone.position.set(legSide, -0.45 * heightFactor, 0);
-            humanGroup.add(thighBone);
-
-            // Panturrilha
-            const shin = createCylinder(
-                thighRadius * 0.8,
-                thighRadius * 0.7,
-                0.4 * heightFactor,
-                0xd4956e,
-                darkSkinMaterial
-            );
-            shin.position.set(legSide, -1 * heightFactor, 0);
-            humanGroup.add(shin);
-
-            // Pé
-            const footGeometry = new THREE.BoxGeometry(
-                thighRadius * 0.8,
-                thighRadius * 0.4,
-                thighRadius * 1.5
-            );
-            const footMaterial = new THREE.MeshStandardMaterial({ color: 0x3b3b3b });
-            const foot = new THREE.Mesh(footGeometry, footMaterial);
-            foot.position.set(legSide, -1.35 * heightFactor, thighRadius * 0.8);
-            foot.castShadow = true;
-            foot.receiveShadow = true;
-            humanGroup.add(foot);
-        };
-
-        createLeg('left');
-        createLeg('right');
 
         // Posicionar o grupo todo
         humanGroup.position.y = 0.3;
@@ -273,6 +144,12 @@ const Human3DModel = ({
             if (humanGroupRef.current) {
                 humanGroupRef.current.rotation.x = rotationRef.current.x;
                 humanGroupRef.current.rotation.y = rotationRef.current.y;
+                humanGroupRef.current.position.x = positionRef.current.x;
+                humanGroupRef.current.position.y = positionRef.current.y;
+            }
+
+            if (cameraRef.current) {
+                cameraRef.current.position.z = positionRef.current.z;
             }
 
             renderer.render(scene, camera);
@@ -302,10 +179,46 @@ const Human3DModel = ({
             setIsDragging(false);
         };
 
+        // Zoom com scroll do mouse
+        const handleMouseWheel = (e) => {
+            e.preventDefault();
+            const zoomSpeed = 0.1;
+            const direction = e.deltaY > 0 ? -1 : 1;
+            positionRef.current.z = Math.max(1, Math.min(10, positionRef.current.z + direction * zoomSpeed));
+            setZoomLevel(3 / positionRef.current.z);
+        };
+
+        // Controle de teclado para movimento
+        const handleKeyDown = (e) => {
+            const step = 0.2;
+            switch(e.key) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    positionRef.current.y += step;
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    positionRef.current.y -= step;
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    positionRef.current.x -= step;
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    positionRef.current.x += step;
+                    break;
+                default:
+                    break;
+            }
+        };
+
         renderer.domElement.addEventListener('mousedown', handleMouseDown);
         renderer.domElement.addEventListener('mousemove', handleMouseMove);
         renderer.domElement.addEventListener('mouseup', handleMouseUp);
         renderer.domElement.addEventListener('mouseleave', handleMouseUp);
+        renderer.domElement.addEventListener('wheel', handleMouseWheel, { passive: false });
+        window.addEventListener('keydown', handleKeyDown);
 
         // Handle resize
         const handleResize = () => {
@@ -321,16 +234,19 @@ const Human3DModel = ({
 
         return () => {
             window.removeEventListener('resize', handleResize);
+            window.removeEventListener('keydown', handleKeyDown);
             renderer.domElement.removeEventListener('mousedown', handleMouseDown);
             renderer.domElement.removeEventListener('mousemove', handleMouseMove);
             renderer.domElement.removeEventListener('mouseup', handleMouseUp);
             renderer.domElement.removeEventListener('mouseleave', handleMouseUp);
+            renderer.domElement.removeEventListener('wheel', handleMouseWheel);
             if (container && renderer.domElement.parentNode === container) {
                 container.removeChild(renderer.domElement);
             }
             renderer.dispose();
+            renderer.forceContextLoss();
         };
-    }, [weight, height, waist, chest, thigh]);
+    }, [weight, height, waist, chest, thigh, gender]);
 
     // Calcular IMC
     const imc = (weight / ((height / 100) ** 2)).toFixed(1);
@@ -344,6 +260,37 @@ const Human3DModel = ({
 
     const imcStatus = getIMCStatus();
 
+    // Função para resetar posição
+    const handleResetView = () => {
+        rotationRef.current = { x: 0.6, y: 0 };
+        positionRef.current = { x: 0, y: 0, z: 3 };
+        setZoomLevel(1);
+    };
+
+    // Funções para rotacionar
+    const rotateModel = (direction) => {
+        const rotSpeed = 0.2;
+        switch(direction) {
+            case 'up': rotationRef.current.x -= rotSpeed; break;
+            case 'down': rotationRef.current.x += rotSpeed; break;
+            case 'left': rotationRef.current.y -= rotSpeed; break;
+            case 'right': rotationRef.current.y += rotSpeed; break;
+            default: break;
+        }
+    };
+
+    // Funções para mover
+    const moveModel = (direction) => {
+        const step = 0.2;
+        switch(direction) {
+            case 'up': positionRef.current.y += step; break;
+            case 'down': positionRef.current.y -= step; break;
+            case 'left': positionRef.current.x -= step; break;
+            case 'right': positionRef.current.x += step; break;
+            default: break;
+        }
+    };
+
     return (
         <div className="card shadow-sm border-0 mt-4">
             <div className="card-body">
@@ -354,10 +301,10 @@ const Human3DModel = ({
                 <div className="row g-4">
                     {/* Visualizador 3D */}
                     <div className="col-12 col-lg-8">
-                        <div 
+                        <div
                             ref={containerRef}
                             className="bg-light rounded-3 position-relative"
-                            style={{ 
+                            style={{
                                 minHeight: '500px',
                                 height: '500px',
                                 cursor: isDragging ? 'grabbing' : 'grab',
@@ -365,8 +312,56 @@ const Human3DModel = ({
                             }}
                         />
                         <small className="text-muted d-block text-center mt-2">
-                            💡 Arraste para rotacionar o corpo
+                            💡 Arraste para rotacionar • Setas do teclado para mover • Scroll para zoom
                         </small>
+
+                        {/* Controles de Rotação */}
+                        <div className="mt-3 d-flex flex-column gap-2">
+                            {/* Controles de Rotação */}
+                            <div className="d-flex justify-content-center gap-2 mb-2">
+                                <button 
+                                    className="btn btn-sm btn-outline-info" 
+                                    onClick={() => rotateModel('up')}
+                                    title="Rotacionar para cima"
+                                >
+                                    <i className="bi bi-arrow-up"></i>
+                                </button>
+                            </div>
+                            <div className="d-flex justify-content-center gap-2">
+                                <button 
+                                    className="btn btn-sm btn-outline-info" 
+                                    onClick={() => rotateModel('left')}
+                                    title="Rotacionar para esquerda"
+                                >
+                                    <i className="bi bi-arrow-left"></i>
+                                </button>
+                                <button 
+                                    className="btn btn-sm btn-outline-info" 
+                                    onClick={() => rotateModel('down')}
+                                    title="Rotacionar para baixo"
+                                >
+                                    <i className="bi bi-arrow-down"></i>
+                                </button>
+                                <button 
+                                    className="btn btn-sm btn-outline-info" 
+                                    onClick={() => rotateModel('right')}
+                                    title="Rotacionar para direita"
+                                >
+                                    <i className="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                            
+                            {/* Botão Reset */}
+                            <div className="d-flex justify-content-center gap-2 mt-2">
+                                <button 
+                                    className="btn btn-sm btn-outline-danger" 
+                                    onClick={handleResetView}
+                                    title="Resetar vista"
+                                >
+                                    <i className="bi bi-arrow-counterclockwise"></i> Resetar
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Badges com Métricas em Tempo Real */}

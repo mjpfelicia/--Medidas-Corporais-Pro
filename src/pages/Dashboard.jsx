@@ -6,6 +6,7 @@ const DashboardPage = () => {
   const [measurements, setMeasurements] = useState([]);
   const [last, setLast] = useState(null);
   const [first, setFirst] = useState(null);
+  const [gender, setGender] = useState('male');
 
   useEffect(() => {
     const saved = localStorageService.get('measurements');
@@ -62,10 +63,42 @@ const DashboardPage = () => {
         style={{
           background: 'linear-gradient(90deg, #4f46e5, #7c3aed)'
         }}>
-        <h2 className="fw-bold mb-2">Bem-vindo de volta!!</h2>
-        <p className="mb-0 opacity-75">
-          Acompanhe seu progresso e alcance seus objetivos de composição corporal.
-        </p>
+        <div className="d-flex justify-content-between align-items-center">
+          <div>
+            <h2 className="fw-bold mb-2">Bem-vindo de volta!!</h2>
+            <p className="mb-0 opacity-75">
+              Acompanhe seu progresso e alcance seus objetivos de composição corporal.
+            </p>
+          </div>
+          {/* Seletor de Gênero */}
+          <div className="btn-group" role="group" aria-label="Seletor de Gênero">
+            <input 
+              type="radio" 
+              className="btn-check" 
+              name="gender" 
+              id="genderMale" 
+              autoComplete="off"
+              checked={gender === 'male'}
+              onChange={() => setGender('male')}
+            />
+            <label className="btn btn-outline-light" htmlFor="genderMale">
+              <i className="bi bi-person me-2"></i>Homem
+            </label>
+
+            <input 
+              type="radio" 
+              className="btn-check" 
+              name="gender" 
+              id="genderFemale" 
+              autoComplete="off"
+              checked={gender === 'female'}
+              onChange={() => setGender('female')}
+            />
+            <label className="btn btn-outline-light" htmlFor="genderFemale">
+              <i className="bi bi-person-fill me-2"></i>Mulher
+            </label>
+          </div>
+        </div>
       </div>
 
       {/* Modelo 3D do Corpo */}
@@ -74,6 +107,7 @@ const DashboardPage = () => {
         initialHeight={180} 
         initialWaist={parseFloat(last.waist)}
         measurements={measurements}
+        gender={gender}
       />
 
       {/* Cards principais */}
