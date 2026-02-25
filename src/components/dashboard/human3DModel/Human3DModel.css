@@ -1,0 +1,57 @@
+/* Container do visualizador 3D */
+.viewer-container {
+    min-height: 500px;
+    height: 500px;
+    overflow: hidden;
+    position: relative;
+    background-color: #f8f9fa;
+    /* equivalente ao bg-light */
+    border-radius: 0.75rem;
+    /* equivalente ao rounded-3 */
+}
+
+/* Cursor dinâmico */
+.viewer-container.grab {
+    cursor: grab;
+}
+
+.viewer-container.grabbing {
+    cursor: grabbing;
+}
+
+/* Badge container */
+.badge-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Badge item */
+.badge-item {
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    border: 1px solid transparent;
+}
+
+/* Espaçamento entre controles */
+.controls-container {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.controls-row {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.controls-row.mb-2 {
+    margin-bottom: 0.5rem;
+}
+
+.controls-row.mt-2 {
+    margin-top: 0.5rem;
+}

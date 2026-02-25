@@ -1,13 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import "./Human3DModel.css";
+import {
+    handleKeyDown,
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    handleMouseWheel,
+    handleResize
+} from "./control3DModel";
+
+import { setIunination } from './Ilumination';
 
 const Human3DModel = ({
     initialWeight = 70,
     initialHeight = 170,
     initialWaist = 80,
     measurements = [],
-    gender = 'male' // 'male' ou 'female'
+    gender = 'female' // 'male' ou 'female'
 }) => {
     const containerRef = useRef(null);
     const sceneRef = useRef(null);
@@ -16,8 +27,8 @@ const Human3DModel = ({
     const humanGroupRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-    const rotationRef = useRef({ x: 0.6, y: 0 });
-    const positionRef = useRef({ x: 0, y: 0, z: 3 });
+    const rotationRef = useRef({ x: 0, y: 0 });
+    const positionRef = useRef({ x: 0, y: -1, z: 3 });
     const [zoomLevel, setZoomLevel] = useState(1);
 
     // Obter última medição
@@ -63,21 +74,8 @@ const Human3DModel = ({
         rendererRef.current = renderer;
         container.appendChild(renderer.domElement);
 
-        // Iluminação
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        scene.add(ambientLight);
-
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
-        directionalLight.position.set(5, 5, 5);
-        directionalLight.castShadow = true;
-        directionalLight.shadow.mapSize.width = 1024;
-        directionalLight.shadow.mapSize.height = 1024;
-        directionalLight.shadow.camera.far = 50;
-        scene.add(directionalLight);
-
-        const pointLight = new THREE.PointLight(0xffffff, 0.9);
-        pointLight.position.set(-5, 3, 5);
-        scene.add(pointLight);
+        // Iluminação - otimizada e igual para ambos os modelos
+        setIunination(scene);
 
         // Grupo do corpo humano
         const humanGroup = new THREE.Group();
@@ -87,45 +85,43 @@ const Human3DModel = ({
         // Carregar modelo 3D
         const loader = new GLTFLoader();
         const modelPath = `${process.env.PUBLIC_URL}/models/${gender}.glb`;
-        console.log({ modelPath });
-        loader.load(
-            modelPath,
-            (gltf) => {
-                const model = gltf.scene;
 
-                // Limpar grupo anterior
-                while (humanGroup.children.length > 0) {
-                    humanGroup.remove(humanGroup.children[0]);
-                }
+        const gltf = (gltf) => {
+            const model = gltf.scene;
 
-                // Adicionar modelo ao grupo
-                humanGroup.add(model);
+            // Corrigir orientação inicial
+            // model.rotation.set(0, Math.PI, 0); // gira 180° no eixo Y
 
-                // Ajustar escala do modelo
-                model.scale.set(1.5, 1.5, 1.5);
-
-                // Configurar sombras
-                model.traverse((child) => {
-                    if (child.isMesh) {
-                        child.castShadow = true;
-                        child.receiveShadow = true;
-                    }
-                });
-            },
-            undefined,
-            (error) => {
-                console.error(`Erro ao carregar modelo ${gender}:`, error);
-                // Fallback: criar modelo simples se não carregar
-                createFallbackModel(humanGroup, gender);
+            if (gender === 'female') {
+                model.rotation.set(0, Math.PI, 0);
             }
-        );
+
+            // Limpar grupo anterior
+            while (humanGroup.children.length > 0) {
+                humanGroup.remove(humanGroup.children[0]);
+            }
+
+            // Adicionar modelo ao grupo
+            humanGroup.add(model);
+
+            // Ajustar escala do modelo
+            model.scale.set(1.5, 1.5, 1.5);
+
+            // Configurar sombras
+            model.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+        }
 
         // Função fallback para criar modelo simples
         const createFallbackModel = (group, gnd) => {
-            const geometry = new THREE.CapsuleGeometry(0.3, 1.5, 16, 100);
+            const geometry = new THREE.CapsuleGeometry(1, 1.5, 16, 100);
             const material = new THREE.MeshStandardMaterial({
-                color: gnd === 'female' ? 0xFF69B4 : 0x0066CC,
-                roughness: 0.7,
+                color: 0xFF69B4,
+                roughness: 0.1,
                 metalness: 0.1,
             });
             const mesh = new THREE.Mesh(geometry, material);
@@ -134,8 +130,21 @@ const Human3DModel = ({
             group.add(mesh);
         };
 
+        loader.load(
+            modelPath,
+            gltf,
+            undefined,
+            (error) => {
+                console.error(`Erro ao carregar modelo ${gender}:`, error);
+                // Fallback: criar modelo simples se não carregar
+                createFallbackModel(humanGroup, gender);
+            }
+        );
+
+
+
         // Posicionar o grupo todo
-        humanGroup.position.y = 0.3;
+        humanGroup.position.y = 0;
 
         // Render loop
         const animate = () => {
@@ -157,80 +166,30 @@ const Human3DModel = ({
 
         animate();
 
-        // Mouse controls
-        const handleMouseDown = (e) => {
-            setIsDragging(true);
-            setDragStart({ x: e.clientX, y: e.clientY });
-        };
 
-        const handleMouseMove = (e) => {
-            if (!isDragging) return;
 
-            const deltaX = (e.clientX - dragStart.x) * 0.01;
-            const deltaY = (e.clientY - dragStart.y) * 0.01;
+        renderer.domElement.addEventListener(
+            'mousedown',
+            e => handleMouseDown(e, setIsDragging, setDragStart));
 
-            rotationRef.current.x += deltaY;
-            rotationRef.current.y += deltaX;
+        renderer.domElement.addEventListener(
+            'mousemove',
+            e => handleMouseMove(e, rotationRef, isDragging, dragStart, setDragStart));
 
-            setDragStart({ x: e.clientX, y: e.clientY });
-        };
+        renderer.domElement.addEventListener(
+            'mouseup',
+            e => handleMouseUp(setIsDragging, false));
 
-        const handleMouseUp = () => {
-            setIsDragging(false);
-        };
+        renderer.domElement.addEventListener(
+            'mouseleave',
+            e => handleMouseUp(setIsDragging, false));
 
-        // Zoom com scroll do mouse
-        const handleMouseWheel = (e) => {
-            e.preventDefault();
-            const zoomSpeed = 0.1;
-            const direction = e.deltaY > 0 ? -1 : 1;
-            positionRef.current.z = Math.max(1, Math.min(10, positionRef.current.z + direction * zoomSpeed));
-            setZoomLevel(3 / positionRef.current.z);
-        };
+        renderer.domElement.addEventListener(
+            'wheel', e => handleMouseWheel(e, setZoomLevel, positionRef),
+            { passive: false });
 
-        // Controle de teclado para movimento
-        const handleKeyDown = (e) => {
-            const step = 0.2;
-            switch(e.key) {
-                case 'ArrowUp':
-                    e.preventDefault();
-                    positionRef.current.y += step;
-                    break;
-                case 'ArrowDown':
-                    e.preventDefault();
-                    positionRef.current.y -= step;
-                    break;
-                case 'ArrowLeft':
-                    e.preventDefault();
-                    positionRef.current.x -= step;
-                    break;
-                case 'ArrowRight':
-                    e.preventDefault();
-                    positionRef.current.x += step;
-                    break;
-                default:
-                    break;
-            }
-        };
-
-        renderer.domElement.addEventListener('mousedown', handleMouseDown);
-        renderer.domElement.addEventListener('mousemove', handleMouseMove);
-        renderer.domElement.addEventListener('mouseup', handleMouseUp);
-        renderer.domElement.addEventListener('mouseleave', handleMouseUp);
-        renderer.domElement.addEventListener('wheel', handleMouseWheel, { passive: false });
-        window.addEventListener('keydown', handleKeyDown);
-
-        // Handle resize
-        const handleResize = () => {
-            if (!container) return;
-            const width = container.clientWidth;
-            const height = container.clientHeight;
-            camera.aspect = width / height;
-            camera.updateProjectionMatrix();
-            renderer.setSize(width, height);
-        };
-
-        window.addEventListener('resize', handleResize);
+        window.addEventListener('keydown', e => handleKeyDown(e, positionRef));
+        window.addEventListener('resize', e => handleResize(container, camera, renderer));
 
         return () => {
             window.removeEventListener('resize', handleResize);
@@ -262,31 +221,31 @@ const Human3DModel = ({
 
     // Função para resetar posição
     const handleResetView = () => {
-        rotationRef.current = { x: 0.6, y: 0 };
-        positionRef.current = { x: 0, y: 0, z: 3 };
-        setZoomLevel(1);
+        rotationRef.current = { x: 0, y: 0 };
+        positionRef.current = { x: 0, y: -1, z: 3 };
+        setZoomLevel(zoomLevel);
     };
 
     // Funções para rotacionar
-    const rotateModel = (direction) => {
+    const rotateModel = (direction, rotation) => {
         const rotSpeed = 0.2;
-        switch(direction) {
-            case 'up': rotationRef.current.x -= rotSpeed; break;
-            case 'down': rotationRef.current.x += rotSpeed; break;
-            case 'left': rotationRef.current.y -= rotSpeed; break;
-            case 'right': rotationRef.current.y += rotSpeed; break;
+        switch (direction) {
+            case 'up': rotation.current.x -= rotSpeed; break;
+            case 'down': rotation.current.x += rotSpeed; break;
+            case 'left': rotation.current.y -= rotSpeed; break;
+            case 'right': rotation.current.y += rotSpeed; break;
             default: break;
         }
     };
 
     // Funções para mover
-    const moveModel = (direction) => {
+    const moveModel = (direction, position) => {
         const step = 0.2;
-        switch(direction) {
-            case 'up': positionRef.current.y += step; break;
-            case 'down': positionRef.current.y -= step; break;
-            case 'left': positionRef.current.x -= step; break;
-            case 'right': positionRef.current.x += step; break;
+        switch (direction) {
+            case 'up': position.current.y += step; break;
+            case 'down': position.current.y -= step; break;
+            case 'left': position.current.x -= step; break;
+            case 'right': position.current.x += step; break;
             default: break;
         }
     };
@@ -303,62 +262,56 @@ const Human3DModel = ({
                     <div className="col-12 col-lg-8">
                         <div
                             ref={containerRef}
-                            className="bg-light rounded-3 position-relative"
-                            style={{
-                                minHeight: '500px',
-                                height: '500px',
-                                cursor: isDragging ? 'grabbing' : 'grab',
-                                overflow: 'hidden'
-                            }}
+                            className={`viewer-container ${isDragging ? 'grabbing' : 'grab'}`}
                         />
                         <small className="text-muted d-block text-center mt-2">
                             💡 Arraste para rotacionar • Setas do teclado para mover • Scroll para zoom
                         </small>
 
                         {/* Controles de Rotação */}
-                        <div className="mt-3 d-flex flex-column gap-2">
-                            {/* Controles de Rotação */}
-                            <div className="d-flex justify-content-center gap-2 mb-2">
-                                <button 
-                                    className="btn btn-sm btn-outline-info" 
-                                    onClick={() => rotateModel('up')}
-                                    title="Rotacionar para cima"
+                        <div className="controls-container">
+                            <p className="small text-muted mb-2 text-center">Controles de Rotação:</p>
+                            <div className="controls-row mb-2">
+                                <button
+                                    className="btn btn-sm btn-outline-primary"
+                                    onClick={() => rotateModel('up', rotationRef)}
+                                    title="Rotacionar para cima (eixo X)"
                                 >
-                                    <i className="bi bi-arrow-up"></i>
+                                    <i className="bi bi-arrow-up"></i> Cima
                                 </button>
                             </div>
-                            <div className="d-flex justify-content-center gap-2">
-                                <button 
-                                    className="btn btn-sm btn-outline-info" 
+                            <div className="controls-row">
+                                <button
+                                    className="btn btn-sm btn-outline-primary"
                                     onClick={() => rotateModel('left')}
-                                    title="Rotacionar para esquerda"
+                                    title="Rotacionar para esquerda (eixo Y)"
                                 >
-                                    <i className="bi bi-arrow-left"></i>
+                                    <i className="bi bi-arrow-left"></i> Esq
                                 </button>
-                                <button 
-                                    className="btn btn-sm btn-outline-info" 
+                                <button
+                                    className="btn btn-sm btn-outline-primary"
                                     onClick={() => rotateModel('down')}
-                                    title="Rotacionar para baixo"
+                                    title="Rotacionar para baixo (eixo X)"
                                 >
-                                    <i className="bi bi-arrow-down"></i>
+                                    <i className="bi bi-arrow-down"></i> Baixo
                                 </button>
-                                <button 
-                                    className="btn btn-sm btn-outline-info" 
+                                <button
+                                    className="btn btn-sm btn-outline-primary"
                                     onClick={() => rotateModel('right')}
-                                    title="Rotacionar para direita"
+                                    title="Rotacionar para direita (eixo Y)"
                                 >
-                                    <i className="bi bi-arrow-right"></i>
+                                    <i className="bi bi-arrow-right"></i> Dir
                                 </button>
                             </div>
-                            
+
                             {/* Botão Reset */}
-                            <div className="d-flex justify-content-center gap-2 mt-2">
-                                <button 
-                                    className="btn btn-sm btn-outline-danger" 
+                            <div className="controls-row mt-3">
+                                <button
+                                    className="btn btn-sm btn-outline-danger w-100"
                                     onClick={handleResetView}
                                     title="Resetar vista"
                                 >
-                                    <i className="bi bi-arrow-counterclockwise"></i> Resetar
+                                    <i className="bi bi-arrow-counterclockwise"></i> Resetar Vista
                                 </button>
                             </div>
                         </div>
@@ -366,51 +319,59 @@ const Human3DModel = ({
 
                     {/* Badges com Métricas em Tempo Real */}
                     <div className="col-12 col-lg-4">
-                        <div className="badge-container d-flex flex-column gap-3">
+                        <div className="badge-container">
                             {/* Altura */}
-                            <div className="badge-item p-3 bg-light rounded-2 border border-primary">
+                            <div className="badge-item border border-primary">
                                 <div className="d-flex align-items-center justify-content-between mb-2">
                                     <span className="text-muted small fw-semibold">ALTURA</span>
                                     <i className="bi bi-diagram-3 text-primary"></i>
                                 </div>
-                                <div className="h4 text-primary fw-bold mb-0">{height} <span className="fs-6">cm</span></div>
+                                <div className="h4 text-primary fw-bold mb-0">
+                                    {height} <span className="fs-6">cm</span>
+                                </div>
                                 <small className="text-muted">Padrão: 170cm</small>
                             </div>
 
                             {/* Peso */}
-                            <div className="badge-item p-3 bg-light rounded-2 border border-success">
+                            <div className="badge-item border border-success">
                                 <div className="d-flex align-items-center justify-content-between mb-2">
                                     <span className="text-muted small fw-semibold">PESO</span>
                                     <i className="bi bi-speedometer text-success"></i>
                                 </div>
-                                <div className="h4 text-success fw-bold mb-0">{weight} <span className="fs-6">kg</span></div>
+                                <div className="h4 text-success fw-bold mb-0">
+                                    {weight} <span className="fs-6">kg</span>
+                                </div>
                                 <small className="text-muted">Padrão: 70kg</small>
                             </div>
 
                             {/* Cintura */}
-                            <div className="badge-item p-3 bg-light rounded-2 border border-danger">
+                            <div className="badge-item border border-danger">
                                 <div className="d-flex align-items-center justify-content-between mb-2">
                                     <span className="text-muted small fw-semibold">CINTURA</span>
                                     <i className="bi bi-circle text-danger"></i>
                                 </div>
-                                <div className="h4 text-danger fw-bold mb-0">{waist} <span className="fs-6">cm</span></div>
+                                <div className="h4 text-danger fw-bold mb-0">
+                                    {waist} <span className="fs-6">cm</span>
+                                </div>
                                 <small className="text-muted">Padrão: 80cm</small>
                             </div>
 
-                            {/* Peito/Tórax (se disponível) */}
+                            {/* Peito/Tórax */}
                             {chest && (
-                                <div className="badge-item p-3 bg-light rounded-2 border border-info">
+                                <div className="badge-item border border-info">
                                     <div className="d-flex align-items-center justify-content-between mb-2">
                                         <span className="text-muted small fw-semibold">TÓRAX</span>
                                         <i className="bi bi-lungs text-info"></i>
                                     </div>
-                                    <div className="h4 text-info fw-bold mb-0">{chest} <span className="fs-6">cm</span></div>
+                                    <div className="h4 text-info fw-bold mb-0">
+                                        {chest} <span className="fs-6">cm</span>
+                                    </div>
                                     <small className="text-muted">Padrão: 90cm</small>
                                 </div>
                             )}
 
                             {/* IMC */}
-                            <div className={`badge-item p-3 bg-light rounded-2 border border-${imcStatus.color}`}>
+                            <div className={`badge-item border border-${imcStatus.color}`}>
                                 <div className="d-flex align-items-center justify-content-between mb-2">
                                     <span className="text-muted small fw-semibold">IMC</span>
                                     <i className={`bi bi-heart-pulse text-${imcStatus.color}`}></i>
@@ -421,9 +382,9 @@ const Human3DModel = ({
                                 </span>
                             </div>
 
-                            {/* Taxa de Mudança */}
+                            {/* Última Medição */}
                             {lastMeasurement && (
-                                <div className="badge-item p-3 bg-light rounded-2 border border-secondary">
+                                <div className="badge-item border border-secondary">
                                     <div className="d-flex align-items-center justify-content-between mb-2">
                                         <span className="text-muted small fw-semibold">ÚLTIMA MEDIÇÃO</span>
                                         <i className="bi bi-calendar-event text-secondary"></i>
@@ -448,3 +409,4 @@ const Human3DModel = ({
 };
 
 export default Human3DModel;
+

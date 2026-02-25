@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { localStorageService } from '../hooks/localStorageService';
-import Human3DModel from '../components/dashboard/Human3DModel';
+import Human3DModel from '../components/dashboard/human3DModel';
 
 const DashboardPage = () => {
   const [measurements, setMeasurements] = useState([]);
   const [last, setLast] = useState(null);
   const [first, setFirst] = useState(null);
-  const [gender, setGender] = useState('male');
+  const [gender, setGender] = useState('female');
 
   useEffect(() => {
     const saved = localStorageService.get('measurements');
