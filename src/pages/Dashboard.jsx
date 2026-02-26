@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { calculateBMI, getBMIClassification } from '../utils/fitnessCalculations';
 
 const DashboardPage = ({ measurements = [] }) => {
   const [last, setLast] = useState(null);
@@ -77,19 +78,21 @@ const DashboardPage = ({ measurements = [] }) => {
     );
   }
 
-  // ===============================
-  // Sem dados
-  // ===============================
-
   if (!last) {
     return (
       <main className="container py-4">
         <div className="alert alert-info">
+          <i className="bi bi-info-circle me-2"></i>
           Nenhuma medição válida encontrada. Adicione suas primeiras medidas para começar.
         </div>
       </main>
     );
   }
+
+  // Cálculo de IMC
+  const bmi = calculateBMI(last.weight, last.height);
+  const bmiClass = getBMIClassification(bmi);
+  const weightStatus = bmiClass.label;
 
   return (
     <main className="container py-4">
@@ -100,48 +103,71 @@ const DashboardPage = ({ measurements = [] }) => {
           background: 'linear-gradient(90deg, #4f46e5, #7c3aed)'
         }}
       >
-        <h2 className="fw-bold mb-2">Bem-vindo de volta!!</h2>
+        <h2 className="fw-bold mb-2">Bem-vindo de volta! 👋</h2>
         <p className="mb-0 opacity-75">
-          Acompanhe seu progresso e alcance seus objetivos de composição corporal.
+          Seu peso atual: <strong>{last.weight} kg</strong> • Status: <strong>{weightStatus}</strong>
         </p>
       </div>
 
-      {/* Cards principais */}
-      <div className="row g-4 mb-4">
+      {/* Status Principal - Peso e Classificação */}
+      <div className="row mb-4">
+        <div className="col-12">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body text-center py-5">
+              <div className="mb-4">
+                <span style={{ fontSize: '48px' }}>
+                  {bmiClass.label === 'Peso normal' && '✅'}
+                  {bmiClass.label === 'Abaixo do peso' && '⬇️'}
+                  {bmiClass.label === 'Sobrepeso' && '⚠️'}
+                  {bmiClass.label.includes('Obesidade') && '❌'}
+                </span>
+              </div>
+              <div className="mb-3">
+                <h3 className="fw-bold mb-1" style={{ fontSize: '2.5rem', color: '#667eea' }}>
+                  {last.weight} kg
+                </h3>
+                <p className="text-muted mb-0">Seu peso atual</p>
+              </div>
+              
+              {measurements.length >= 2 && (
+                <div className={`badge bg-${weightDelta >= 0 ? 'danger' : 'success'} p-2 mb-3`}>
+                  {weightDelta > 0 ? '+' : ''}{weightDelta} kg desde a última medição
+                </div>
+              )}
 
-        {/* Peso */}
-        <div className="col-12 col-md-6 col-lg-3">
-          <div className="card h-100 shadow-sm border-0">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <i className="bi bi-speedometer2 text-primary fs-3"></i>
-                <span className="text-muted small fw-medium">Peso</span>
-              </div>
-              <div className="d-flex align-items-baseline">
-                <span className="fs-2 fw-bold">{last.weight}</span>
-                <span className="text-muted ms-1">kg</span>
-              </div>
-              <div className={`small mt-2 ${weightDelta >= 0 ? 'text-success' : 'text-danger'}`}>
-                {weightDelta > 0 ? '+' : ''}{weightDelta} kg
+              <div className="mt-4 p-3 rounded" style={{ backgroundColor: '#f9f9f9' }}>
+                <h5 className={`mb-2 fw-bold bg-${bmiClass.color} text-white p-2 rounded`}>
+                  {weightStatus}
+                </h5>
+                <p className="text-muted small mb-0">
+                  IMC: {bmi.toFixed(1)} 
+                  {bmiClass.label === 'Peso normal' && ' - Continue mantendo este peso'}
+                  {bmiClass.label === 'Abaixo do peso' && ' - Precise ganhar peso'}
+                  {bmiClass.label === 'Sobrepeso' && ' - Recomenda-se perder peso'}
+                  {bmiClass.label.includes('Obesidade') && ' - Procure orientação profissional'}
+                </p>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
+      {/* Cards de Métricas Rápidas */}
+      <div className="row g-4 mb-4">
         {/* Gordura */}
         <div className="col-12 col-md-6 col-lg-3">
           <div className="card h-100 shadow-sm border-0">
             <div className="card-body">
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <i className="bi bi-heart-pulse text-primary fs-3"></i>
-                <span className="text-muted small fw-medium">Gordura Corporal</span>
+                <i className="bi bi-heart-pulse text-danger fs-3"></i>
+                <span className="text-muted small fw-medium">Gordura</span>
               </div>
               <div className="d-flex align-items-baseline">
-                <span className="fs-2 fw-bold">{last.bodyFat}</span>
+                <span className="fs-2 fw-bold">{last.bodyFat.toFixed(1)}</span>
                 <span className="text-muted ms-1">%</span>
               </div>
               <div className={`small mt-2 ${gorduraDelta <= 0 ? 'text-success' : 'text-danger'}`}>
-                {gorduraDelta > 0 ? '+' : ''}{gorduraDelta}%
+                {gorduraDelta > 0 ? '↑' : '↓'} {Math.abs(gorduraDelta)}%
               </div>
             </div>
           </div>
@@ -152,81 +178,65 @@ const DashboardPage = ({ measurements = [] }) => {
           <div className="card h-100 shadow-sm border-0">
             <div className="card-body">
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <i className="bi bi-lightning-charge text-primary fs-3"></i>
-                <span className="text-muted small fw-medium">Massa Muscular</span>
+                <i className="bi bi-lightning-charge text-warning fs-3"></i>
+                <span className="text-muted small fw-medium">Músculos</span>
               </div>
               <div className="d-flex align-items-baseline">
-                <span className="fs-2 fw-bold">{last.muscleMass}</span>
+                <span className="fs-2 fw-bold">{last.muscleMass.toFixed(1)}</span>
                 <span className="text-muted ms-1">kg</span>
               </div>
               <div className={`small mt-2 ${massaDelta >= 0 ? 'text-success' : 'text-danger'}`}>
-                {massaDelta > 0 ? '+' : ''}{massaDelta} kg
+                {massaDelta > 0 ? '↑' : '↓'} {Math.abs(massaDelta)} kg
               </div>
             </div>
           </div>
         </div>
 
         {/* Cintura */}
+        {last.waist && (
+          <div className="col-12 col-md-6 col-lg-3">
+            <div className="card h-100 shadow-sm border-0">
+              <div className="card-body">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <i className="bi bi-diagram-3 text-info fs-3"></i>
+                  <span className="text-muted small fw-medium">Cintura</span>
+                </div>
+                <div className="d-flex align-items-baseline">
+                  <span className="fs-2 fw-bold">{last.waist.toFixed(1)}</span>
+                  <span className="text-muted ms-1">cm</span>
+                </div>
+                <div className={`small mt-2 ${waistDelta <= 0 ? 'text-success' : 'text-danger'}`}>
+                  {waistDelta > 0 ? '↑' : '↓'} {Math.abs(waistDelta)} cm
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Data da Última Medição */}
         <div className="col-12 col-md-6 col-lg-3">
           <div className="card h-100 shadow-sm border-0">
             <div className="card-body">
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <i className="bi bi-person text-primary fs-3"></i>
-                <span className="text-muted small fw-medium">Cintura</span>
+                <i className="bi bi-calendar-event text-secondary fs-3"></i>
+                <span className="text-muted small fw-medium">Última Medição</span>
               </div>
-              <div className="d-flex align-items-baseline">
-                <span className="fs-2 fw-bold">{last.waist}</span>
-                <span className="text-muted ms-1">cm</span>
+              <div className="fs-6 fw-bold">
+                {new Date(last.date).toLocaleDateString('pt-BR')}
               </div>
-              <div className={`small mt-2 ${waistDelta <= 0 ? 'text-success' : 'text-danger'}`}>
-                {waistDelta > 0 ? '+' : ''}{waistDelta} cm
+              <div className="small mt-2 text-muted">
+                {Math.floor((new Date() - new Date(last.date)) / (1000 * 60 * 60 * 24))} dias atrás
               </div>
             </div>
           </div>
         </div>
-
       </div>
 
-      {/* Metas */}
-      <div className="row g-4">
-        <div className="col-12 col-md-6">
-          <div className="card shadow-sm border-0">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <h6 className="fw-semibold mb-0">Redução de Gordura Corporal</h6>
-                <span className={`small fw-medium ${gorduraDelta <= 0 ? 'text-success' : 'text-danger'}`}>
-                  {gorduraDelta > 0 ? '+' : ''}{gorduraDelta}%
-                </span>
-              </div>
-              <div className="progress" style={{ height: 10 }}>
-                <div
-                  className={`progress-bar ${gorduraDelta <= 0 ? 'bg-success' : 'bg-danger'}`}
-                  role="progressbar"
-                  style={{ width: `${fatProgress}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-md-6">
-          <div className="card shadow-sm border-0">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <h6 className="fw-semibold mb-0">Ganho de Massa Muscular</h6>
-                <span className={`small fw-medium ${massaDelta >= 0 ? 'text-success' : 'text-danger'}`}>
-                  {massaDelta > 0 ? '+' : ''}{massaDelta} kg
-                </span>
-              </div>
-              <div className="progress" style={{ height: 10 }}>
-                <div
-                  className={`progress-bar ${massaDelta >= 0 ? 'bg-success' : 'bg-danger'}`}
-                  role="progressbar"
-                  style={{ width: `${muscleProgress}%` }}
-                />
-              </div>
-            </div>
-          </div>
+      {/* Dica para Ver Detalhes */}
+      <div className="alert alert-info d-flex align-items-center gap-3">
+        <i className="bi bi-lightbulb fs-5"></i>
+        <div>
+          <strong>Dica:</strong> Clique em "<strong>Perfil</strong>" no menu para ver todas as métricas avançadas (IMC, Relação Cintura/Altura, TMB, TDEE, e muito mais!)
         </div>
       </div>
     </main>
