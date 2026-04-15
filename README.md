@@ -378,4 +378,4 @@ Este projeto está sob licença **MIT**. Veja [LICENSE](LICENSE) para detalhes.
 
 **Desenvolvido com ❤️ para ajudar você a alcançar seus objetivos!**
 
-Última atualização: Fevereiro 2026
+Última atualização: Março 2026
